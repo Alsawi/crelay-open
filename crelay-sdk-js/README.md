@@ -320,11 +320,11 @@ HTTPS provides transport-layer encryption — it protects data *in flight* betwe
 
 | Threat | HTTPS | CRelay |
 |--------|-------|--------|
-| **MITM with compromised CA** | ❌ Vulnerable | ✅ Application payload remains encrypted until the trusted CRelay gateway boundary |
-| **Replay attacks** | ❌ No protection | ✅ requestId + freshness check |
-| **Cross-route replay** | ❌ No protection | ✅ AAD bound to method + path |
-| **Stolen payloads** | ❌ Can be replayed | ✅ Stale envelopes rejected |
-| **Payload tampering outside TLS boundary ** | ❌ Not protected after TLS termination | ✅ GCM auth tag verification |
+| **MITM or compromised TLS path** | Protects transport, but payload is exposed after TLS termination | Application payload remains encrypted until the trusted CRelay gateway boundary |
+| **Replay attacks** | No application-level replay protection | `requestId` + freshness check |
+| **Cross-route replay** | No route-bound payload context | AAD bound to method + path |
+| **Stolen payloads after TLS termination** | No application-level freshness enforcement | Stale envelopes rejected |
+| **Payload tampering outside TLS boundary** | Not protected after TLS termination | AES-GCM auth tag verification |
 
 > **CRelay protects sensitive API payloads beyond HTTPS with AES-256-GCM encryption, replay protection, timestamp freshness, and route-bound AAD.**
 

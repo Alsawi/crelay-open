@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: crelay-sdk-js
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build
+        run: npm run build
+
+      - name: Build tests
+        run: npm run build:test
+
+      - name: Verify test output exists
+        run: |
+          if [ -z "$(find dist-test/test -name '*.test.js' -print -quit)" ]; then
+            echo "ERROR: no test files found in dist-test/test"
+            exit 1
+          fi
+
+      - name: Run tests
+        run: node --test dist-test/test/*.test.js
+
+      - name: Verify generated build output is not tracked
+        run: |
+          if git ls-files | grep -E '(^|/)dist(-test)?/'; then
+            echo "ERROR: generated dist output is tracked in git"
+            exit 1
+          fi

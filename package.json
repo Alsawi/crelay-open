@@ -1,0 +1,19 @@
+{
+  "name": "crelay-open",
+  "private": true,
+  "workspaces": [
+    "crelay-sdk-js",
+    "crelay-quickstart/client-demo",
+    "crelay-quickstart/mock-gateway",
+    "crelay-quickstart/upstream-api"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace crelay-sdk-js",
+    "test": "npm run test --workspace crelay-sdk-js",
+    "quickstart:install": "npm install",
+    "quickstart:upstream": "npm start --workspace upstream-api",
+    "quickstart:gateway": "npm start --workspace mock-gateway",
+    "quickstart:client": "npm start --workspace client-demo",
+    "quickstart:check": "node crelay-quickstart/scripts/check-health.mjs"
+  }
+}

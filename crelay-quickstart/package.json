@@ -1,0 +1,15 @@
+{
+  "name": "crelay-quickstart",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Try CRelay end-to-end in 5 minutes",
+  "scripts": {
+    "install:all": "npm install --prefix upstream-api && npm install --prefix client-demo && npm install --prefix mock-gateway",
+    "upstream": "npm start --prefix upstream-api",
+    "gateway": "npm start --prefix mock-gateway",
+    "client": "npm start --prefix client-demo",
+    "client:local": "CRELAY_MODE=local npm start --prefix client-demo",
+    "demo": "npm run upstream & npm run gateway & sleep 2 && npm run client"
+  },
+  "license": "MIT"
+}

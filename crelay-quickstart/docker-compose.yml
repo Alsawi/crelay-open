@@ -1,0 +1,48 @@
+version: "3.9"
+
+# ⚠️ This compose file uses a MOCK gateway for demo purposes only.
+# Do NOT use this in production.
+
+services:
+  mock-gateway:
+    build: ./mock-gateway
+    ports:
+      - "${GATEWAY_PORT:-3000}:3000"
+    environment:
+      - GATEWAY_PORT=3000
+      - UPSTREAM_URL=http://upstream-api:4010
+      - SECURE_GATEWAY_KEY_B64=${SECURE_GATEWAY_KEY_B64}
+    depends_on:
+      upstream-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r => r.json()).then(j => { if(j.status !== 'ok') throw new Error('unhealthy') })"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  upstream-api:
+    build: ./upstream-api
+    ports:
+      - "4010:4010"
+    environment:
+      - PORT=4010
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4010/health').then(r => r.json()).then(j => { if(j.status !== 'ok') throw new Error('unhealthy') })"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  client-demo:
+    build: ./client-demo
+    environment:
+      - SECURE_GATEWAY_API_KEY=${SECURE_GATEWAY_API_KEY:-sk_test_demo_123}
+      - SECURE_GATEWAY_BASE_URL=http://mock-gateway:3000
+      - SECURE_GATEWAY_TENANT_ID=${SECURE_GATEWAY_TENANT_ID:-tenant_demo}
+      - SECURE_GATEWAY_KEY_B64=${SECURE_GATEWAY_KEY_B64}
+      - SECURE_GATEWAY_KID=${SECURE_GATEWAY_KID:-demo-key-001}
+      - UPSTREAM_URL=http://upstream-api:4010
+      - SECURE_GATEWAY_MODE=gateway
+    depends_on:
+      mock-gateway:
+        condition: service_healthy

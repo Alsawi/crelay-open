@@ -1,0 +1,9 @@
+dist/
+dist-test/
+node_modules/
+coverage/
+.env
+.env.*
+.DS_Store
+._*
+__MACOSX/

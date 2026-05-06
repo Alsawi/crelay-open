@@ -1,0 +1,9 @@
+{
+  "v": 1,
+  "alg": "A256GCM",
+  "kid": "key-2025-03-01-a",
+  "nonce": "cmVzcG9uc2Utbm9uY2UtMTI=",
+  "ciphertext": "cmVzcG9uc2UtZW5jcnlwdGVkLWRhdGE=",
+  "aadContext": "RESPONSE:/api/internal/transfer:tenant_acme",
+  "ts": 1741234567900
+}

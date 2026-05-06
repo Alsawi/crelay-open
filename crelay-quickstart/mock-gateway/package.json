@@ -1,0 +1,14 @@
+{
+  "name": "mock-gateway",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LIMITED mock CRelay gateway for demo purposes only — NOT the real hosted gateway",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  }
+}

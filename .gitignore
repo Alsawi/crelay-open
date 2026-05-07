@@ -8,3 +8,6 @@ dist-test/
 ._*
 __MACOSX/
 coverage/
+
+# npm pack artifacts
+*.tgz

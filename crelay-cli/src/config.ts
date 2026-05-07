@@ -5,14 +5,19 @@ import { parse } from "dotenv";
 export const DEFAULT_GATEWAY_URL = "https://gateway.crelay.dev";
 export const DEFAULT_TEST_PATH = "/health";
 
+export interface TargetEntry {
+  name?: string;
+  origin?: string;
+  testPath?: string;
+}
+
 export interface CRelayConfigFile {
   gatewayUrl?: string;
   tenantId?: string;
   kid?: string;
-  target?: {
-    origin?: string;
-    testPath?: string;
-  };
+  targetOrigin?: string;
+  target?: string | { origin?: string; testPath?: string };
+  targets?: TargetEntry[];
 }
 
 export interface RuntimeConfig {
@@ -27,6 +32,14 @@ export interface RuntimeConfig {
   envFiles: string[];
 }
 
+export function getDefaultTargetOrigin(config: CRelayConfigFile): string | undefined {
+  if (config.targetOrigin) return config.targetOrigin;
+  if (typeof config.target === "string") return config.target;
+  if (typeof config.target === "object" && config.target?.origin) return config.target.origin;
+  if (config.targets?.[0]?.origin) return config.targets[0].origin;
+  return undefined;
+}
+
 export async function loadRuntimeConfig(cwd: string, env: NodeJS.ProcessEnv = process.env): Promise<RuntimeConfig> {
   const config = await readConfigFile(cwd);
   const { values: fileEnv, files } = await readEnvFiles(cwd);
@@ -35,14 +48,16 @@ export async function loadRuntimeConfig(cwd: string, env: NodeJS.ProcessEnv = pr
     ...env,
   };
 
+  const configTestPath = typeof config.target === "object" ? config.target?.testPath : undefined;
+
   return {
     baseUrl: firstValue(mergedEnv.CRELAY_BASE_URL, config.gatewayUrl),
     apiKey: firstValue(mergedEnv.CRELAY_API_KEY),
     tenantId: firstValue(mergedEnv.CRELAY_TENANT_ID, config.tenantId),
     kid: firstValue(mergedEnv.CRELAY_KID, config.kid),
     keyB64: firstValue(mergedEnv.CRELAY_KEY_B64),
-    targetOrigin: normalizeOrigin(firstValue(mergedEnv.CRELAY_TARGET_ORIGIN, config.target?.origin)),
-    testPath: normalizePath(firstValue(mergedEnv.CRELAY_TEST_PATH, config.target?.testPath, DEFAULT_TEST_PATH) ?? DEFAULT_TEST_PATH),
+    targetOrigin: normalizeOrigin(firstValue(mergedEnv.CRELAY_TARGET_ORIGIN, getDefaultTargetOrigin(config))),
+    testPath: normalizePath(firstValue(mergedEnv.CRELAY_TEST_PATH, configTestPath, DEFAULT_TEST_PATH) ?? DEFAULT_TEST_PATH),
     config,
     envFiles: files,
   };

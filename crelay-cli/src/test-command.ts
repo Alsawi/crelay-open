@@ -2,6 +2,7 @@ import { CRelayClient } from "@crelay/sdk";
 import pc from "picocolors";
 import { joinTargetUrl, loadRuntimeConfig } from "./config.js";
 import { explainFailure } from "./errors.js";
+import { validateKeyB64 } from "./key.js";
 import { maskSecret } from "./mask.js";
 import { type Logger } from "./output.js";
 import { loadPayload } from "./payload.js";
@@ -32,11 +33,12 @@ export async function runTest(logger: Logger, options: TestOptions = {}): Promis
   }
 
   const targetUrl = joinTargetUrl(targetOrigin, requestPath);
+  const keyValidation = validateKeyB64(config.keyB64);
   logger.log(`Gateway: ${config.baseUrl}`);
   logger.log(`Target: ${targetUrl}`);
   logger.log(`Method: ${method}`);
   logger.log(`API key: ${maskSecret(config.apiKey)}`);
-  logger.log(`Key: ${maskSecret(config.keyB64)}`);
+  logger.log(`keyB64: ${keyValidation.ok ? `masked (${keyValidation.byteLength} bytes)` : keyValidation.message}`);
 
   try {
     const client = new CRelayClient({

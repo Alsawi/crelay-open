@@ -20,9 +20,11 @@
   ],
   "scripts": {
     "clean": "rm -rf dist dist-test",
-    "build": "npm run clean && tsc -p tsconfig.json",
+    "build": "npm run clean && tsc -p tsconfig.json && npm run postbuild",
+    "postbuild": "chmod +x dist/index.js",
     "build:test": "tsc -p tsconfig.test.json",
-    "test": "npm run build && npm run build:test && test -n \"$(find dist-test/test -name '*.test.js' -print -quit)\" && node --test dist-test/test/*.test.js",
+    "test": "npm run build && npm run build:test && node --test dist-test/test/*.test.js",
+    "prepack": "npm run build",
     "prepublishOnly": "npm run test"
   },
   "keywords": [

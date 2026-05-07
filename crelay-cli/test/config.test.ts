@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtemp, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { joinTargetUrl, loadRuntimeConfig, normalizePath } from "../src/config.js";
+import { getDefaultTargetOrigin, joinTargetUrl, loadRuntimeConfig, normalizePath } from "../src/config.js";
 
 describe("config parsing", () => {
   it("loads crelay.config.json with .env, .env.local, .env.crelay, and process env precedence", async () => {
@@ -64,5 +64,39 @@ describe("config parsing", () => {
   it("normalizes paths and joins target URLs", () => {
     assert.strictEqual(normalizePath("health"), "/health");
     assert.strictEqual(joinTargetUrl("https://api.example.com/", "health"), "https://api.example.com/health");
+  });
+});
+
+describe("getDefaultTargetOrigin", () => {
+  it("finds targetOrigin field", () => {
+    assert.strictEqual(
+      getDefaultTargetOrigin({ targetOrigin: "https://api.example.com" }),
+      "https://api.example.com",
+    );
+  });
+
+  it("finds target as string", () => {
+    assert.strictEqual(
+      getDefaultTargetOrigin({ target: "https://api.example.com" }),
+      "https://api.example.com",
+    );
+  });
+
+  it("finds target.origin object form", () => {
+    assert.strictEqual(
+      getDefaultTargetOrigin({ target: { origin: "https://api.example.com" } }),
+      "https://api.example.com",
+    );
+  });
+
+  it("finds targets[0].origin", () => {
+    assert.strictEqual(
+      getDefaultTargetOrigin({ targets: [{ name: "primary", origin: "https://api.example.com" }] }),
+      "https://api.example.com",
+    );
+  });
+
+  it("returns undefined when no target is configured", () => {
+    assert.strictEqual(getDefaultTargetOrigin({}), undefined);
   });
 });

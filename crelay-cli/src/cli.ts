@@ -50,11 +50,13 @@ export function createCli(): Command {
     .option("--target <url>", "Full target URL or target origin")
     .option("--method <method>", "HTTP method, GET or POST", "GET")
     .option("--body <jsonOrFile>", "Inline JSON or path to a JSON body file")
+    .option("--json <inline>", "Inline JSON body (shorthand for --body)")
     .option("--path <path>", "AAD/test path override")
     .option("--verbose", "Print additional diagnostics with truncated ciphertext")
     .option("--show-payload", "Print plaintext payload")
-    .action(async (options: { target?: string; method?: string; body?: string; path?: string; verbose?: boolean; showPayload?: boolean }) => {
-      process.exitCode = await runDebug(consoleLogger, options);
+    .action(async (options: { target?: string; method?: string; body?: string; json?: string; path?: string; verbose?: boolean; showPayload?: boolean }) => {
+      const body = options.json ?? options.body;
+      process.exitCode = await runDebug(consoleLogger, { ...options, body });
     });
 
   return program;

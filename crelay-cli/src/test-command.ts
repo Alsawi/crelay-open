@@ -8,6 +8,7 @@ import { type Logger } from "./output.js";
 import { loadPayload } from "./payload.js";
 import { explainUpstreamStatus, formatBody, summarizeBody, unwrapResponse } from "./response.js";
 import { sanitizeSecrets } from "./safety.js";
+import { sendEvent } from "./telemetry.js";
 
 export interface TestOptions {
   cwd?: string;
@@ -20,6 +21,7 @@ export interface TestOptions {
 }
 
 export async function runTest(logger: Logger, options: TestOptions = {}): Promise<number> {
+  const startTime = Date.now();
   const cwd = options.cwd ?? process.cwd();
   const config = await loadRuntimeConfig(cwd, options.env);
   const method = normalizeMethod(options.method ?? "GET");
@@ -29,6 +31,17 @@ export async function runTest(logger: Logger, options: TestOptions = {}): Promis
 
   if (!config.baseUrl || !config.apiKey || !config.tenantId || !config.kid || !config.keyB64 || !targetOrigin) {
     logger.error(pc.red("Missing required CRelay configuration. Run `crelay doctor` for details."));
+    await sendEvent("test_completed", {
+      command: "test",
+      success: false,
+      durationMs: Date.now() - startTime,
+      method,
+      nodeVersionMajor: parseInt(process.versions.node, 10),
+      platform: process.platform,
+      gatewayHost: config.baseUrl ? new URL(config.baseUrl).host : undefined,
+      hasTarget: !!options.target,
+      errorCategory: "MISSING_CONFIG",
+    });
     return 1;
   }
 
@@ -64,12 +77,37 @@ export async function runTest(logger: Logger, options: TestOptions = {}): Promis
     }
     logger.log(`${pc.green(options.showResponse ? "decrypted response body:" : "decrypted response summary:")}`);
     logger.log(options.showResponse ? formatBody(body) : summarizeBody(body));
+
+    await sendEvent("test_completed", {
+      command: "test",
+      success: true,
+      durationMs: Date.now() - startTime,
+      method,
+      gatewayHost: new URL(config.baseUrl).host,
+      hasTarget: !!options.target,
+      upstreamStatus,
+      nodeVersionMajor: parseInt(process.versions.node, 10),
+      platform: process.platform,
+    });
     return 0;
   } catch (err) {
     const explanation = explainFailure(err);
     const safeMessage = sanitizeSecrets(err instanceof Error ? err.message : String(err), [config.apiKey, config.keyB64]);
     logger.error(`${pc.red("secure request failed:")} ${safeMessage}`);
     logger.error(`${pc.yellow(explanation.code)} ${explanation.message}`);
+
+    await sendEvent("test_completed", {
+      command: "test",
+      success: false,
+      durationMs: Date.now() - startTime,
+      method,
+      gatewayHost: new URL(config.baseUrl).host,
+      hasTarget: !!options.target,
+      knownGatewayError: explanation.code !== "UNKNOWN" ? explanation.code : undefined,
+      errorCategory: explanation.code,
+      nodeVersionMajor: parseInt(process.versions.node, 10),
+      platform: process.platform,
+    });
     return 1;
   }
 }

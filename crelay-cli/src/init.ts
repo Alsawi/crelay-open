@@ -4,6 +4,7 @@ import prompts from "prompts";
 import pc from "picocolors";
 import { DEFAULT_GATEWAY_URL, DEFAULT_TEST_PATH, normalizePath } from "./config.js";
 import { type Logger } from "./output.js";
+import { isTelemetryEnabled, setTelemetryEnabled } from "./telemetry.js";
 
 export interface InitOptions {
   cwd?: string;
@@ -44,6 +45,21 @@ export async function runInit(logger: Logger, options: InitOptions = {}): Promis
   logger.log("  crelay.config.json");
   logger.log("  .env.crelay.example");
   logger.log("  examples/crelay-test.mjs");
+
+  const alreadyEnabled = await isTelemetryEnabled();
+  if (!alreadyEnabled) {
+    const { telemetry } = await prompts({
+      type: "confirm",
+      name: "telemetry",
+      message: "Help improve CRelay by sending anonymous CLI diagnostics? No payloads, secrets, or responses are collected.",
+      initial: false,
+    });
+    if (telemetry) {
+      await setTelemetryEnabled(true);
+      logger.log(pc.dim("Telemetry enabled. Use `crelay telemetry disable` to opt out."));
+    }
+  }
+
   return 0;
 }
 

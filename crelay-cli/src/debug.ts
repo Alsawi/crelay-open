@@ -15,6 +15,7 @@ import { type Logger } from "./output.js";
 import { loadPayload } from "./payload.js";
 import { explainUpstreamStatus, formatBody, summarizeBody, unwrapResponse } from "./response.js";
 import { sanitizeSecrets } from "./safety.js";
+import { sendEvent } from "./telemetry.js";
 import { normalizeMethod } from "./test-command.js";
 
 const LARGE_PAYLOAD_BYTES = 64 * 1024;
@@ -39,6 +40,7 @@ interface ParsedTarget {
 }
 
 export async function runDebug(logger: Logger, options: DebugOptions = {}): Promise<number> {
+  const startTime = Date.now();
   const cwd = options.cwd ?? process.cwd();
   const fetchImpl = options.fetchImpl ?? fetch;
   const config = await loadRuntimeConfig(cwd, options.env);
@@ -70,6 +72,17 @@ export async function runDebug(logger: Logger, options: DebugOptions = {}): Prom
 
   if (!config.baseUrl || !config.apiKey || !config.tenantId || !config.kid || !config.keyB64 || !target) {
     logger.error(pc.red("Missing required CRelay configuration. Run `crelay doctor` for details."));
+    await sendDebugEvent("debug_completed", {
+      command: "debug",
+      success: false,
+      durationMs: Date.now() - startTime,
+      method,
+      nodeVersionMajor: parseInt(process.versions.node, 10),
+      platform: process.platform,
+      gatewayHost: config.baseUrl ? new URL(config.baseUrl).host : undefined,
+      hasTarget: !!options.target,
+      errorCategory: "MISSING_CONFIG",
+    });
     return 1;
   }
 
@@ -93,6 +106,17 @@ export async function runDebug(logger: Logger, options: DebugOptions = {}): Prom
 
   if (!keyValidation.ok) {
     logger.error(pc.red("Cannot build envelope until CRELAY_KEY_B64 is valid."));
+    await sendDebugEvent("debug_completed", {
+      command: "debug",
+      success: false,
+      durationMs: Date.now() - startTime,
+      method,
+      nodeVersionMajor: parseInt(process.versions.node, 10),
+      platform: process.platform,
+      gatewayHost: new URL(config.baseUrl).host,
+      hasTarget: !!options.target,
+      errorCategory: "INVALID_KEY",
+    });
     return 1;
   }
 
@@ -137,6 +161,18 @@ export async function runDebug(logger: Logger, options: DebugOptions = {}): Prom
       logger.log(`gateway error code: ${code ?? "UNKNOWN"}`);
       logger.error(pc.red(`gateway failure: ${safeText || gatewayResponse.statusText}`));
       logger.error(pc.yellow(explainFailure(new Error(code ?? safeText)).message));
+      await sendDebugEvent("debug_completed", {
+        command: "debug",
+        success: false,
+        durationMs: Date.now() - startTime,
+        method,
+        nodeVersionMajor: parseInt(process.versions.node, 10),
+        platform: process.platform,
+        gatewayHost: new URL(config.baseUrl).host,
+        hasTarget: !!options.target,
+        knownGatewayError: code ?? undefined,
+        errorCategory: code ?? "GATEWAY_ERROR",
+      });
       return 1;
     }
 
@@ -146,6 +182,17 @@ export async function runDebug(logger: Logger, options: DebugOptions = {}): Prom
     } catch (err) {
       logger.log("response decrypt: failure");
       logger.error(pc.red(`gateway returned invalid JSON: ${(err as Error).message}`));
+      await sendDebugEvent("debug_completed", {
+        command: "debug",
+        success: false,
+        durationMs: Date.now() - startTime,
+        method,
+        nodeVersionMajor: parseInt(process.versions.node, 10),
+        platform: process.platform,
+        gatewayHost: new URL(config.baseUrl).host,
+        hasTarget: !!options.target,
+        errorCategory: "INVALID_JSON",
+      });
       return 1;
     }
 
@@ -160,6 +207,18 @@ export async function runDebug(logger: Logger, options: DebugOptions = {}): Prom
       logger.log("response decrypt: failure");
       logger.error(pc.red(sanitizeSecrets(err instanceof Error ? err.message : String(err), [config.apiKey, config.keyB64])));
       logger.error(pc.yellow(`${explanation.code} ${explanation.message}`));
+      await sendDebugEvent("debug_completed", {
+        command: "debug",
+        success: false,
+        durationMs: Date.now() - startTime,
+        method,
+        nodeVersionMajor: parseInt(process.versions.node, 10),
+        platform: process.platform,
+        gatewayHost: new URL(config.baseUrl).host,
+        hasTarget: !!options.target,
+        knownGatewayError: explanation.code !== "UNKNOWN" ? explanation.code : undefined,
+        errorCategory: explanation.code,
+      });
       return 1;
     }
 
@@ -171,13 +230,42 @@ export async function runDebug(logger: Logger, options: DebugOptions = {}): Prom
     }
     logger.log("decrypted response summary:");
     logger.log(options.verbose ? formatBody(body) : summarizeBody(body));
-    return upstreamStatus !== undefined && upstreamStatus >= 400 ? 1 : 0;
+
+    const exitCode = upstreamStatus !== undefined && upstreamStatus >= 400 ? 1 : 0;
+    await sendDebugEvent("debug_completed", {
+      command: "debug",
+      success: exitCode === 0,
+      durationMs: Date.now() - startTime,
+      method,
+      nodeVersionMajor: parseInt(process.versions.node, 10),
+      platform: process.platform,
+      gatewayHost: new URL(config.baseUrl).host,
+      hasTarget: !!options.target,
+      upstreamStatus,
+    });
+    return exitCode;
   } catch (err) {
     const explanation = explainFailure(err);
     logger.error(pc.red(`secure request failed: ${sanitizeSecrets(err instanceof Error ? err.message : String(err), [config.apiKey, config.keyB64])}`));
     logger.error(pc.yellow(`${explanation.code} ${explanation.message}`));
+    await sendDebugEvent("debug_completed", {
+      command: "debug",
+      success: false,
+      durationMs: Date.now() - startTime,
+      method,
+      nodeVersionMajor: parseInt(process.versions.node, 10),
+      platform: process.platform,
+      gatewayHost: new URL(config.baseUrl).host,
+      hasTarget: !!options.target,
+      knownGatewayError: explanation.code !== "UNKNOWN" ? explanation.code : undefined,
+      errorCategory: explanation.code,
+    });
     return 1;
   }
+}
+
+async function sendDebugEvent(event: string, properties: Record<string, unknown>): Promise<void> {
+  await sendEvent(event, properties);
 }
 
 function parseTarget(targetInput: string | undefined, pathInput: string | undefined, configOrigin: string | undefined, configPath: string): ParsedTarget | undefined {

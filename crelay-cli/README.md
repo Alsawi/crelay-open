@@ -97,6 +97,37 @@ Reports:
 - Envelope: version, algorithm, kid, nonce length, ciphertext byte size, timestamp age, requestId
 - Gateway: `/health` status, secure request status, gateway error code, upstream status, response decrypt result
 
+## Telemetry
+
+CRelay CLI includes optional anonymous usage telemetry. Telemetry is **disabled by default**.
+
+### What is collected
+
+- Command name (`doctor`, `test`, `debug`)
+- Success/failure status
+- Duration in milliseconds
+- CLI version, Node.js major version, OS platform
+- Gateway host (not full URL)
+- Whether a target override was used
+- HTTP method used
+- Known gateway error codes (e.g., `AUTH_INVALID_API_KEY`)
+
+### What is never collected
+
+- API keys, keyB64 values, payloads, headers, or target URLs
+- Response bodies or decrypted content
+- Personal information or project names
+
+### Managing telemetry
+
+```bash
+crelay telemetry status    # Show current state
+crelay telemetry enable    # Enable anonymous diagnostics
+crelay telemetry disable   # Disable telemetry
+```
+
+You will be prompted once on first use of `crelay init` or `crelay doctor`. Configuration is stored at `~/.crelay/config.json`.
+
 ## Safe Debug Policy
 
 - Raw API keys are never printed.

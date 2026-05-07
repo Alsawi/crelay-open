@@ -1,7 +1,10 @@
+import prompts from "prompts";
+import pc from "picocolors";
 import { loadRuntimeConfig, validateGatewayUrl, type RuntimeConfig } from "./config.js";
 import { validateKeyB64 } from "./key.js";
 import { maskSecret } from "./mask.js";
 import { fail, info, pass, type Logger } from "./output.js";
+import { readConfig, sendEvent, setTelemetryEnabled } from "./telemetry.js";
 
 export interface DoctorOptions {
   cwd?: string;
@@ -27,7 +30,33 @@ export async function runDoctor(logger: Logger, options: DoctorOptions = {}): Pr
     logger.log(check.line);
   }
 
-  return checks.every((check) => check.ok) ? 0 : 1;
+  const success = checks.every((check) => check.ok);
+
+  const existingConfig = await readConfig();
+  if (!existingConfig) {
+    const { telemetry } = await prompts({
+      type: "confirm",
+      name: "telemetry",
+      message: "Help improve CRelay by sending anonymous CLI diagnostics? No payloads, secrets, or responses are collected.",
+      initial: false,
+    });
+    if (telemetry) {
+      await setTelemetryEnabled(true);
+      logger.log(pc.dim("Telemetry enabled. Use `crelay telemetry disable` to opt out."));
+    } else {
+      await setTelemetryEnabled(false);
+    }
+  }
+
+  await sendEvent("doctor_completed", {
+    command: "doctor",
+    success,
+    nodeVersionMajor: parseInt(process.versions.node, 10),
+    platform: process.platform,
+    gatewayHost: config.baseUrl ? new URL(config.baseUrl).host : undefined,
+  });
+
+  return success ? 0 : 1;
 }
 
 async function collectDoctorChecks(config: RuntimeConfig, fetchImpl: typeof fetch): Promise<CheckResult[]> {

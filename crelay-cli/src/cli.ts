@@ -3,6 +3,7 @@ import { runDebug } from "./debug.js";
 import { runDoctor } from "./doctor.js";
 import { runInit } from "./init.js";
 import { runTest } from "./test-command.js";
+import { runTelemetryStatus, runTelemetryEnable, runTelemetryDisable } from "./telemetry-commands.js";
 import { consoleLogger } from "./output.js";
 
 export function createCli(): Command {
@@ -57,6 +58,31 @@ export function createCli(): Command {
     .action(async (options: { target?: string; method?: string; body?: string; json?: string; path?: string; verbose?: boolean; showPayload?: boolean }) => {
       const body = options.json ?? options.body;
       process.exitCode = await runDebug(consoleLogger, { ...options, body });
+    });
+
+  const telemetryCmd = program
+    .command("telemetry")
+    .description("Manage anonymous usage telemetry");
+
+  telemetryCmd
+    .command("status")
+    .description("Show current telemetry state")
+    .action(async () => {
+      process.exitCode = await runTelemetryStatus(consoleLogger);
+    });
+
+  telemetryCmd
+    .command("enable")
+    .description("Enable anonymous usage telemetry")
+    .action(async () => {
+      process.exitCode = await runTelemetryEnable(consoleLogger);
+    });
+
+  telemetryCmd
+    .command("disable")
+    .description("Disable anonymous usage telemetry")
+    .action(async () => {
+      process.exitCode = await runTelemetryDisable(consoleLogger);
     });
 
   return program;

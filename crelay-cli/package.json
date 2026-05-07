@@ -1,0 +1,62 @@
+{
+  "name": "@crelay/cli",
+  "version": "0.1.0",
+  "description": "Developer integration CLI for CRelay",
+  "type": "module",
+  "bin": {
+    "crelay": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "clean": "rm -rf dist dist-test",
+    "build": "npm run clean && tsc -p tsconfig.json",
+    "build:test": "tsc -p tsconfig.test.json",
+    "test": "npm run build && npm run build:test && test -n \"$(find dist-test/test -name '*.test.js' -print -quit)\" && node --test dist-test/test/*.test.js",
+    "prepublishOnly": "npm run test"
+  },
+  "keywords": [
+    "crelay",
+    "cli",
+    "api-security",
+    "developer-tools"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@crelay/sdk": "^0.1.0",
+    "commander": "^12.1.0",
+    "dotenv": "^16.4.7",
+    "picocolors": "^1.1.1",
+    "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/prompts": "^2.4.9",
+    "typescript": "^5.8.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Alsawi/crelay-open.git",
+    "directory": "crelay-cli"
+  },
+  "homepage": "https://crelay.dev",
+  "bugs": {
+    "url": "https://github.com/Alsawi/crelay-open/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

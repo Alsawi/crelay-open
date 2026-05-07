@@ -7,6 +7,7 @@ Encrypted API relay with replay protection.
 ## Packages
 
 - **crelay-sdk-js** — Node.js SDK for encrypting/decrypting API payloads with AES-256-GCM (published as `@crelay/sdk`)
+- **crelay-cli** — Developer integration CLI for initializing config, validating setup, and sending secure test requests (published as `@crelay/cli`)
 - **crelay-protocol** — Protocol specification, envelope format, and threat model
 - **crelay-quickstart** — End-to-end demo with mock gateway, upstream API, and client
 

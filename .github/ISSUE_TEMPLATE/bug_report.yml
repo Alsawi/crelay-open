@@ -1,0 +1,49 @@
+name: Bug report
+description: Report a reproducible problem in CRelay Open
+title: "bug: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Do not include secrets, tokens, cookies, private keys, or customer data.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Provide the smallest reproducible example.
+      placeholder: |
+        1. Run ...
+        2. Call ...
+        3. See ...
+    validations:
+      required: true
+  - type: input
+    id: package
+    attributes:
+      label: Affected package
+      placeholder: crelay-sdk-js, crelay-cli, crelay-protocol, crelay-quickstart
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: Node.js version, npm version, OS

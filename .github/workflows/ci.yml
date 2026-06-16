@@ -9,15 +9,17 @@ on:
 permissions:
   contents: read
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
-  build-and-test:
-    name: Build and test / Node ${{ matrix.node-version }}
+  sdk-build-and-test:
+    name: SDK build and test / Node 24
     runs-on: ubuntu-latest
 
-    strategy:
-      fail-fast: false
-      matrix:
-        node-version: [20, 22]
+    defaults:
+      run:
+        working-directory: crelay-sdk-js
 
     steps:
       - name: Checkout
@@ -26,16 +28,26 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: "24"
 
       - name: Install dependencies
         run: npm install
 
-      - name: Build workspaces
+      - name: Build SDK
         run: npm run build
 
-      - name: Test workspaces
-        run: npm run test
+      - name: Build tests
+        run: npm run build:test
+
+      - name: Verify test output exists
+        run: |
+          if [ -z "$(find dist-test/test -name '*.test.js' -print -quit)" ]; then
+            echo "ERROR: no test files found in dist-test/test"
+            exit 1
+          fi
+
+      - name: Run tests
+        run: node --test dist-test/test/*.test.js
 
       - name: Check generated build output is not tracked
         run: |

@@ -30,23 +30,23 @@ jobs:
         with:
           node-version: "24"
 
-      - name: Install dependencies
+      - name: Install SDK dependencies
         run: npm install
 
       - name: Build SDK
         run: npm run build
 
-      - name: Build tests
+      - name: Build SDK tests
         run: npm run build:test
 
-      - name: Verify test output exists
+      - name: Verify SDK test output exists
         run: |
           if [ -z "$(find dist-test/test -name '*.test.js' -print -quit)" ]; then
             echo "ERROR: no test files found in dist-test/test"
             exit 1
           fi
 
-      - name: Run tests
+      - name: Run SDK tests
         run: node --test dist-test/test/*.test.js
 
       - name: Check generated build output is not tracked
